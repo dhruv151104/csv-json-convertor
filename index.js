@@ -55,6 +55,42 @@ function parseCSV(content) {
 }
 
 
+// Insert CSV into PostgreSQL
+
+async function insertCSVtoDB() {
+  const csvFile = path.resolve(CSV_PATH);
+  const content = fs.readFileSync(csvFile, "utf-8");
+  const jsonData = parseCSV(content);
+
+  for (let i = 0; i < jsonData.length; i += BATCH_SIZE) {
+    const batch = jsonData.slice(i, i + BATCH_SIZE);
+
+    const queries = batch.map(user => {
+      const name = `${user.name.firstName} ${user.name.lastName}`;
+      const age = parseInt(user.age);
+
+      // Extract address fields
+      const { line1, line2, city, state } = user.address || {};
+      const address = { line1, line2, city, state };
+
+      // Put remaining fields into additional_info
+      const additional_info = { ...user };
+      delete additional_info.name;
+      delete additional_info.age;
+      delete additional_info.address;
+
+      return pool.query(
+        "INSERT INTO users(name, age, address, additional_info) VALUES($1,$2,$3,$4)",
+        [name, age, address, additional_info]
+      );
+    });
+
+    await Promise.all(queries);
+  }
+
+  console.log(`✅ Inserted ${jsonData.length} records into PostgreSQL`);
+}
+
 
 
 app.listen(PORT, () => {
