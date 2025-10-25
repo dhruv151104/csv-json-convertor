@@ -92,6 +92,17 @@ async function insertCSVtoDB() {
 }
 
 
+// Endpoint to trigger CSV import
+
+app.get("/import", async (req, res) => {
+  try {
+    await insertCSVtoDB();
+    res.send("CSV imported successfully!");
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Error importing CSV");
+  }
+});
 
 app.listen(PORT, () => {
   console.log(`🚀 Server started on port ${PORT}`);
